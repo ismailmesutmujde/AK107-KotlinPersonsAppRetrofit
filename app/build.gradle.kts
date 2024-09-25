@@ -7,6 +7,10 @@ android {
     namespace = "com.ismailmesutmujde.kotlinpersonsappretrofit"
     compileSdk = 34
 
+    buildFeatures {
+        viewBinding = true
+    }
+
     defaultConfig {
         applicationId = "com.ismailmesutmujde.kotlinpersonsappretrofit"
         minSdk = 24
