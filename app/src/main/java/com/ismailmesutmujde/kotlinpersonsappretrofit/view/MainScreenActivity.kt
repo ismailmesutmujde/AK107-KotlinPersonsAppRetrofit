@@ -12,14 +12,22 @@ import androidx.appcompat.widget.SearchView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.ismailmesutmujde.kotlinpersonsappretrofit.R
 import com.ismailmesutmujde.kotlinpersonsappretrofit.adapter.PersonsRecyclerViewAdapter
+import com.ismailmesutmujde.kotlinpersonsappretrofit.dao.PersonsDaoInterface
 import com.ismailmesutmujde.kotlinpersonsappretrofit.databinding.ActivityMainScreenBinding
+import com.ismailmesutmujde.kotlinpersonsappretrofit.model.CRUDResponse
 import com.ismailmesutmujde.kotlinpersonsappretrofit.model.Persons
+import com.ismailmesutmujde.kotlinpersonsappretrofit.model.PersonsResponse
+import com.ismailmesutmujde.kotlinpersonsappretrofit.service.ApiUtils
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     private lateinit var bindingMainScreen : ActivityMainScreenBinding
 
     private lateinit var personsList : ArrayList<Persons>
     private lateinit var adapterPersons : PersonsRecyclerViewAdapter
+    private lateinit var pdi : PersonsDaoInterface
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +40,8 @@ class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
 
         bindingMainScreen.recyclerView.setHasFixedSize(true)
         bindingMainScreen.recyclerView.layoutManager = LinearLayoutManager(this)
+
+        pdi = ApiUtils.getPersonsDaoInterface()
 
         /*
         personsList = ArrayList()
@@ -46,6 +56,8 @@ class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
         adapterPersons = PersonsRecyclerViewAdapter(this, personsList)
         bindingMainScreen.recyclerView.adapter = adapterPersons
         */
+
+        allPersons()
 
         bindingMainScreen.fab.setOnClickListener {
             showAlert()
@@ -74,6 +86,20 @@ class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
             val person_name = editTextPersonName.text.toString().trim()
             val person_phone = editTextPersonPhone.text.toString().trim()
 
+            pdi.insertPerson(person_name, person_phone).enqueue(object : Callback<CRUDResponse>{
+                override fun onResponse(
+                    call: Call<CRUDResponse>,
+                    response: Response<CRUDResponse>
+                ) {
+                    allPersons()
+                }
+
+                override fun onFailure(call: Call<CRUDResponse>, t: Throwable) {
+
+                }
+
+            })
+
             Toast.makeText(applicationContext, "${person_name} - ${person_phone}", Toast.LENGTH_SHORT).show()
 
         }
@@ -85,14 +111,58 @@ class MainScreenActivity : AppCompatActivity(), SearchView.OnQueryTextListener {
     }
 
     override fun onQueryTextSubmit(query: String): Boolean {
-
+        searchPerson(query)
         Log.e("Sent Search", query)
         return true
     }
 
     override fun onQueryTextChange(newText: String): Boolean {
-
+        searchPerson(newText)
         Log.e("As Letters Enter", newText)
         return true
+    }
+
+    fun allPersons() {
+        pdi.allPersons().enqueue(object : Callback<PersonsResponse>{
+            override fun onResponse(
+                call: Call<PersonsResponse>,
+                response: Response<PersonsResponse>
+            ) {
+
+                if (response != null) {
+                    val list = response.body()!!.persons
+                    adapterPersons = PersonsRecyclerViewAdapter(this@MainScreenActivity, list, pdi)
+                    bindingMainScreen.recyclerView.adapter = adapterPersons
+                }
+
+            }
+
+            override fun onFailure(call: Call<PersonsResponse>, t: Throwable) {
+
+            }
+
+        })
+    }
+
+    fun searchPerson(searchingWord:String) {
+        pdi.searchPerson(searchingWord).enqueue(object : Callback<PersonsResponse>{
+            override fun onResponse(
+                call: Call<PersonsResponse>,
+                response: Response<PersonsResponse>
+            ) {
+
+                if (response != null) {
+                    val list = response.body()!!.persons
+                    adapterPersons = PersonsRecyclerViewAdapter(this@MainScreenActivity, list, pdi)
+                    bindingMainScreen.recyclerView.adapter = adapterPersons
+                }
+
+            }
+
+            override fun onFailure(call: Call<PersonsResponse>, t: Throwable) {
+
+            }
+
+        })
     }
 }

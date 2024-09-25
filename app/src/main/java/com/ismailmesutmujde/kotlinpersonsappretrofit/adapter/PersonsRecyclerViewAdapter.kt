@@ -13,10 +13,17 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.ismailmesutmujde.kotlinpersonsappretrofit.R
+import com.ismailmesutmujde.kotlinpersonsappretrofit.dao.PersonsDaoInterface
+import com.ismailmesutmujde.kotlinpersonsappretrofit.model.CRUDResponse
 import com.ismailmesutmujde.kotlinpersonsappretrofit.model.Persons
+import com.ismailmesutmujde.kotlinpersonsappretrofit.model.PersonsResponse
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class PersonsRecyclerViewAdapter(private val mContext : Context,
-                                 private var personsList : List<Persons>)
+                                 private var personsList : List<Persons>,
+                                 private val pdi : PersonsDaoInterface)
     : RecyclerView.Adapter<PersonsRecyclerViewAdapter.CardDesignHolder>() {
 
     inner class CardDesignHolder(view : View) : RecyclerView.ViewHolder(view) {
@@ -52,6 +59,21 @@ class PersonsRecyclerViewAdapter(private val mContext : Context,
                         Snackbar.make(holder.imageViewDot,"Delete ${person.person_name}?", Snackbar.LENGTH_SHORT)
                             .setAction("YES") {
 
+                                pdi.deletePerson(person.person_id).enqueue(object :
+                                    Callback<CRUDResponse> {
+                                    override fun onResponse(
+                                        call: Call<CRUDResponse>,
+                                        response: Response<CRUDResponse>
+                                    ) {
+                                        allPersons()
+                                    }
+
+                                    override fun onFailure(call: Call<CRUDResponse>, t: Throwable) {
+
+                                    }
+
+                                })
+
                             }.show()
                         true
                     }
@@ -81,6 +103,21 @@ class PersonsRecyclerViewAdapter(private val mContext : Context,
             val person_name = editTextPersonName.text.toString().trim()
             val person_phone = editTextPersonPhone.text.toString().trim()
 
+            pdi.updatePerson(person.person_id, person_name, person_phone).enqueue(object :
+                Callback<CRUDResponse> {
+                override fun onResponse(
+                    call: Call<CRUDResponse>,
+                    response: Response<CRUDResponse>
+                ) {
+                    allPersons()
+                }
+
+                override fun onFailure(call: Call<CRUDResponse>, t: Throwable) {
+
+                }
+
+            })
+
             Toast.makeText(mContext, "${person_name} - ${person_phone}", Toast.LENGTH_SHORT).show()
 
         }
@@ -89,5 +126,26 @@ class PersonsRecyclerViewAdapter(private val mContext : Context,
 
         }
         alertDialog.show()
+    }
+
+    fun allPersons() {
+        pdi.allPersons().enqueue(object : Callback<PersonsResponse>{
+            override fun onResponse(
+                call: Call<PersonsResponse>,
+                response: Response<PersonsResponse>
+            ) {
+
+                if (response != null) {
+                    personsList = response.body()!!.persons
+                    notifyDataSetChanged()
+                }
+
+            }
+
+            override fun onFailure(call: Call<PersonsResponse>, t: Throwable) {
+
+            }
+
+        })
     }
 }
